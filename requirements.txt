@@ -1,0 +1,3 @@
+openai>=1.0.0
+pdfplumber>=0.9.0
+streamlit>=1.28.0
