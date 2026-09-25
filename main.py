@@ -1,314 +1,165 @@
-import os
+"""AI 求职助手 —— 程序入口（单机版）。
 
-from pdf_reader import extract_text_from_pdf, is_valid_resume_text
-from ai_client import AIClient
-from prompts import get_prompts, ROLE_LABELS, TECH, NON_TECH
+双击 exe 或运行 ``python main.py`` 会：
 
+    1. 在本地找一个空闲端口启动后端（默认 127.0.0.1:8000）
+    2. 自动打开浏览器进入界面
+    3. 保持运行，直到你按 Ctrl+C 或关闭窗口
 
-def choose_role_type():
-    """让用户选择岗位类型，返回 TECH 或 NON_TECH"""
-    print("请选择岗位类型：")
-    print("  1. 技术岗")
-    print("  2. 非技术岗")
-    while True:
-        choice = input("请输入（1-2）: ").strip()
-        if choice == "1":
-            return TECH
-        elif choice == "2":
-            return NON_TECH
-        print("无效选择，请输入 1 或 2")
+**不需要安装 MySQL、不需要改配置文件、不需要另开前端进程。**
+数据（数据库、向量库、日志、配置）都写在程序同级目录的 ``data/`` 下。
+"""
 
+from __future__ import annotations
 
-def get_resume_from_pdf():
-    """
-    让用户输入 PDF 简历的文件路径，读取并返回简历文本
+import argparse
+import socket
+import sys
+import threading
+import time
+import webbrowser
+from pathlib import Path
 
-    会循环提示直到输入有效路径且成功提取出文本
-    返回：提取出的简历文本字符串
-    """
-    print("提示：请输入你的 PDF 简历文件完整路径")
-    print("示例：C:\\Users\\xxx\\Desktop\\resume.pdf")
+# 打包成 exe 后工作目录可能是任意位置，先把可执行文件所在目录塞进 sys.path
+if getattr(sys, "frozen", False):
+    sys.path.insert(0, str(Path(sys.executable).resolve().parent))
+else:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-    while True:
-        pdf_path = input("请输入 PDF 文件路径（输入 quit 返回菜单）：").strip()
+from paths import describe as describe_paths  # noqa: E402
 
-        if pdf_path.lower() == "quit":
-            return None
-
-        if not pdf_path:
-            print("文件路径不能为空！\n")
-            continue
-
-        # 去除用户拖拽或粘贴路径时可能带的引号
-        pdf_path = pdf_path.strip('"').strip("'")
-
-        if not os.path.exists(pdf_path):
-            print(f"❌ 文件不存在：{pdf_path}\n")
-            continue
-
-        if not pdf_path.lower().endswith('.pdf'):
-            print("❌ 文件必须是 PDF 格式（.pdf 后缀）！\n")
-            continue
-
-        print("\n正在读取 PDF 内容...")
-        text = extract_text_from_pdf(pdf_path)
-
-        if not is_valid_resume_text(text):
-            print(f"❌ {text if text else 'PDF 内容为空'}")
-            print("请确认文件是文本型 PDF（非扫描图片），且包含简历内容\n")
-            continue
-
-        print(f"✅ 成功读取简历（共 {len(text)} 字）\n")
-        return text
+BANNER = r"""
+    _    ___    ___  _  _ ___ ___    _   _ ___ _    ___  ___
+   /_\  |_ _|  | _ \| || | __| _ \  | | | | __| |  | _ \| _ \
+  / _ \  | |   |   /| __ | _||   /  | |_| | _|| |__|  _/|   /
+ /_/ \_\|___|  |_|_\|_||_|___|_|_\   \___/|___|____|_|  |_|_\
+                                        AI 求职助手 · 单机版
+"""
 
 
-def optimize_resume(role_type):
-    print("\n" + "=" * 50)
-    print("          AI 简历优化")
-    print("=" * 50)
-
-    resume_text = get_resume_from_pdf()
-
-    if resume_text is None:
-        return
-
-    print("\n" + "-" * 50)
-    print("AI 正在分析和优化你的简历，请稍候...")
-    print("-" * 50 + "\n")
-
-    try:
-        client = AIClient()
-        prompt = get_prompts(role_type).RESUME_OPTIMIZE_PROMPT.format(resume_text=resume_text)
-        result = client.chat(prompt)
-
-        if result.startswith("AI调用失败"):
-            print(f"❌ {result}")
-            return
-
-        print("=" * 50)
-        print("          优化结果")
-        print("=" * 50)
-        print()
-        print(result)
-        print()
-
-        save = input("是否保存优化结果到文件？(y/n): ").strip().lower()
-        if save == "y":
-            filename = input("请输入文件名（默认：optimized_resume.txt）: ").strip()
-            if not filename:
-                filename = "optimized_resume.txt"
-            if not filename.endswith(".txt"):
-                filename += ".txt"
+def find_free_port(preferred: int, limit: int = 20) -> int:
+    """从 preferred 开始向后找一个能绑定的端口。"""
+    for offset in range(max(1, limit)):
+        port = preferred + offset
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
-                with open(filename, "w", encoding="utf-8") as f:
-                    f.write(result)
-                print(f"✅ 已保存到 {filename}")
-            except Exception as e:
-                print(f"❌ 保存失败：{e}")
-
-    except ValueError as e:
-        print(f"❌ {e}")
-        print("提示：请设置 DEEPSEEK_API_KEY 环境变量")
-
-
-def generate_questions(role_type):
-    print("\n" + "=" * 50)
-    print("       AI 面试题生成器")
-    print("=" * 50)
-
-    resume_text = get_resume_from_pdf()
-
-    if resume_text is None:
-        return
-
-    print("\n" + "-" * 50)
-    print("AI 正在生成面试题，请稍候...")
-    print("-" * 50 + "\n")
-
-    try:
-        client = AIClient()
-        prompt = get_prompts(role_type).INTERVIEW_QUESTIONS_PROMPT.format(resume_text=resume_text)
-        result = client.chat(prompt)
-
-        if result.startswith("AI调用失败"):
-            print(f"❌ {result}")
-            return
-
-        print("=" * 50)
-        print("          面试题")
-        print("=" * 50)
-        print()
-        print(result)
-        print()
-
-        save = input("是否保存面试题到文件？(y/n): ").strip().lower()
-        if save == "y":
-            filename = input("请输入文件名（默认：interview_questions.txt）: ").strip()
-            if not filename:
-                filename = "interview_questions.txt"
-            if not filename.endswith(".txt"):
-                filename += ".txt"
-            try:
-                with open(filename, "w", encoding="utf-8") as f:
-                    f.write(result)
-                print(f"✅ 已保存到 {filename}")
-            except Exception as e:
-                print(f"❌ 保存失败：{e}")
-
-    except ValueError as e:
-        print(f"❌ {e}")
-        print("提示：请设置 DEEPSEEK_API_KEY 环境变量")
-
-
-def mock_interview(role_type):
-    print("\n" + "=" * 50)
-    print("       AI 模拟面试")
-    print("=" * 50)
-    print("输入 quit 可随时退出面试\n")
-
-    resume_text = get_resume_from_pdf()
-
-    if resume_text is None:
-        return
-
-    print("\n" + "-" * 50)
-    print("面试官正在准备问题，请稍候...")
-    print("-" * 50 + "\n")
-
-    try:
-        client = AIClient()
-
-        system_prompt = get_prompts(role_type).MOCK_INTERVIEW_SYSTEM_PROMPT.format(resume_text=resume_text)
-
-        messages = [
-            {"role": "system", "content": system_prompt}
-        ]
-
-        first_question = client.chat_with_history(messages)
-
-        if first_question.startswith("AI调用失败"):
-            print(f"❌ {first_question}")
-            return
-
-        messages.append({"role": "assistant", "content": first_question})
-
-        question_count = 1
-        print(f"【面试官】（第{question_count}题）")
-        print(first_question)
-        print()
-
-        while True:
-            user_answer = input("【你】：").strip()
-
-            if user_answer.lower() == "quit":
-                print("\n面试结束，祝你求职顺利！")
-                break
-
-            if not user_answer:
-                print("请输入你的回答！\n")
+                sock.bind(("127.0.0.1", port))
+                return port
+            except OSError:
                 continue
-
-            print("\n" + "-" * 50)
-            print("面试官正在思考...")
-            print("-" * 50 + "\n")
-
-            messages.append({"role": "user", "content": user_answer})
-
-            response = client.chat_with_history(messages)
-
-            if response.startswith("AI调用失败"):
-                print(f"❌ {response}")
-                break
-
-            messages.append({"role": "assistant", "content": response})
-
-            question_count += 1
-            print(f"【面试官】（第{question_count}题）")
-            print(response)
-            print()
-
-    except ValueError as e:
-        print(f"❌ {e}")
-        print("提示：请设置 DEEPSEEK_API_KEY 环境变量")
+    raise RuntimeError(f"从 {preferred} 起连续 {limit} 个端口都被占用，请先关掉占用的程序")
 
 
-def score_resume(role_type):
-    print("\n" + "=" * 50)
-    print("       AI 简历评分")
-    print("=" * 50)
+def port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.settimeout(0.6)
+        return sock.connect_ex(("127.0.0.1", port)) == 0
 
-    resume_text = get_resume_from_pdf()
 
-    if resume_text is None:
-        return
+def wait_until_ready(port: int, timeout: float = 90.0) -> bool:
+    """等后端真正可用（首次运行要建库，可能要十几秒）。"""
+    import httpx
 
-    print("\n" + "-" * 50)
-    print("AI 正在评分，请稍候...")
-    print("-" * 50 + "\n")
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            response = httpx.get(f"http://127.0.0.1:{port}/health", timeout=2.0)
+            if response.status_code == 200:
+                return True
+        except Exception:  # noqa: BLE001 - 还没起来，继续等
+            time.sleep(0.4)
+    return False
+
+
+def run_server(host: str, port: int, log_level: str) -> None:
+    import uvicorn
+
+    uvicorn.run(
+        "backend.app_v3:app",
+        host=host,
+        port=port,
+        log_level=log_level,
+        access_log=False,
+    )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="AI 求职助手（单机版）")
+    parser.add_argument("--host", default="127.0.0.1", help="监听地址（默认仅本机）")
+    parser.add_argument("--port", type=int, default=None, help="监听端口")
+    parser.add_argument("--no-browser", action="store_true", help="不要自动打开浏览器")
+    parser.add_argument("--reload", action="store_true", help="开发模式：改代码自动重启")
+    parser.add_argument(
+        "--log-level",
+        default="info",
+        choices=["critical", "error", "warning", "info", "debug"],
+    )
+    args = parser.parse_args()
+
+    from config import get_settings
+
+    settings = get_settings()
+    preferred = args.port or settings.port
+
+    print(BANNER)
+    print("=" * 66)
+    print(f"  版本　　：{settings.app_version}")
+    print(f"  数据目录：{describe_paths()['data_home']}")
+    print("  数据库　：SQLite（本地文件，无需安装任何数据库）")
+    print("=" * 66)
+
+    # 已经在跑就直接开浏览器，避免重复启动
+    if port_in_use(preferred) and wait_until_ready(preferred, timeout=3):
+        url = f"http://127.0.0.1:{preferred}"
+        print(f"\n  检测到程序已经在运行：{url}")
+        if not args.no_browser:
+            webbrowser.open(url)
+        return 0
+
+    port = find_free_port(preferred, limit=settings.port_scan_limit)
+    url = f"http://127.0.0.1:{port}"
+    if port != preferred:
+        print(f"\n  端口 {preferred} 被占用，改用 {port}")
+
+    if args.reload:
+        print(f"\n  开发模式已启动：{url}\n")
+        if not args.no_browser:
+            threading.Timer(2.0, lambda: webbrowser.open(url)).start()
+        run_server(args.host, port, args.log_level)
+        return 0
+
+    # 后台线程起服务，主线程等就绪并打开浏览器
+    thread = threading.Thread(
+        target=run_server, args=(args.host, port, args.log_level), daemon=True
+    )
+    thread.start()
+
+    print("\n  正在启动服务（首次运行要建库，可能需要十几秒）...")
+    if not wait_until_ready(port):
+        print("\n  [错误] 服务启动超时。日志见数据目录下的 logs/app.log")
+        return 1
+
+    print(f"\n  [OK] 已就绪，界面地址：{url}")
+    print("  " + "-" * 62)
+    print("  使用步骤：① 填求职档案并上传简历  ->  ② 抓取岗位与薪资")
+    print("            ③ 生成专属知识库        ->  ④ 开始模拟面试")
+    print("  " + "-" * 62)
+    print("  按 Ctrl+C 退出（或直接关闭本窗口）\n")
+
+    if settings.open_browser and not args.no_browser:
+        try:
+            webbrowser.open(url)
+        except Exception as exc:  # noqa: BLE001 - 打不开浏览器不影响使用
+            print(f"  （自动打开浏览器失败：{exc}，请手动访问上面的地址）")
 
     try:
-        client = AIClient()
-        prompt = get_prompts(role_type).RESUME_SCORE_PROMPT.format(resume_text=resume_text)
-        result = client.chat(prompt)
-
-        if result.startswith("AI调用失败"):
-            print(f"❌ {result}")
-            return
-
-        print("=" * 50)
-        print("          评分结果")
-        print("=" * 50)
-        print()
-        print(result)
-        print()
-
-    except ValueError as e:
-        print(f"❌ {e}")
-        print("提示：请设置 DEEPSEEK_API_KEY 环境变量")
-
-
-def show_menu(role_type):
-    print("\n" + "=" * 50)
-    print("    AI 简历优化助手 v1.0")
-    print("    （基于 DeepSeek 大模型）")
-    print(f"    当前岗位：{ROLE_LABELS[role_type]}")
-    print("=" * 50)
-    print("  1. 简历优化")
-    print("  2. 生成面试题")
-    print("  3. 模拟面试")
-    print("  4. 简历评分")
-    print("  5. 切换岗位")
-    print("  0. 退出")
-    print("=" * 50)
-
-
-def main():
-    print("欢迎使用 AI 简历优化助手！")
-    role_type = choose_role_type()
-
-    while True:
-        show_menu(role_type)
-        choice = input("请选择功能（0-5）：").strip()
-
-        if choice == "1":
-            optimize_resume(role_type)
-        elif choice == "2":
-            generate_questions(role_type)
-        elif choice == "3":
-            mock_interview(role_type)
-        elif choice == "4":
-            score_resume(role_type)
-        elif choice == "5":
-            role_type = choose_role_type()
-            continue
-        elif choice == "0":
-            print("\n再见！祝你求职顺利！")
-            break
-        else:
-            print("\n无效选择，请输入 0-5 之间的数字")
-
-        input("\n按回车键返回菜单...")
+        while thread.is_alive():
+            time.sleep(0.5)
+    except KeyboardInterrupt:
+        print("\n  正在退出...")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

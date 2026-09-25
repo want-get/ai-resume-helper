@@ -1,0 +1,37 @@
+# ===== AI 求职助手 · 容器部署（可选）=====
+#
+#   docker compose up -d --build
+#   打开 http://localhost:8000
+#
+# 说明：
+#   * 单机版**不需要 MySQL**，数据库用容器内的 SQLite。
+#   * 数据（数据库/向量库/配置/日志）挂在 kb_data 卷里，重建容器不会丢。
+#   * 容器里没有浏览器，所以关闭了自动跳转；用 /app/data 里的日志排查问题。
+#   * 爬虫需要 Playwright 驱动浏览器。基础镜像不含 Edge/Chrome，
+#     如需在容器内使用「自定义官网」的渲染爬虫，请换成带浏览器的基础镜像，
+#     或把 CRAWLER_HEADLESS 的渲染爬虫关掉，只用公开 JSON 接口来源。
+
+services:
+  app:
+    build: .
+    container_name: ai-job-helper
+    restart: unless-stopped
+    environment:
+      AI_HELPER_DATA_DIR: /data
+      HOST: 0.0.0.0
+      PORT: "8000"
+      OPEN_BROWSER: "false"
+      # 中文联网抓取
+      CRAWLER_HEADLESS: "true"
+      CRAWLER_CONCURRENCY: "3"
+      # 可选：容器内改成 MySQL 时再打开
+      # DATABASE_URL: mysql+aiomysql://root:password@mysql:3306/ai_resume_helper?charset=utf8mb4
+    ports:
+      - "8000:8000"
+    volumes:
+      - kb_data:/data
+      # 让用户可以在宿主机上编辑岗位来源，而不用进容器
+      - ./data/seed:/app/data/seed:ro
+
+volumes:
+  kb_data:

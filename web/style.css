@@ -1,0 +1,245 @@
+/* AI 求职助手 —— 单页前端样式（无框架、无构建） */
+
+:root {
+  --bg: #0f1115;
+  --panel: #171a21;
+  --panel-2: #1e222b;
+  --line: #2a2f3a;
+  --text: #e6e8ee;
+  --muted: #9096a4;
+  --brand: #4f8cff;
+  --brand-2: #3b73d9;
+  --ok: #2fbf71;
+  --warn: #e5a13a;
+  --err: #e5534b;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.7 "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, sans-serif;
+}
+
+/* ---------------- 顶栏 ---------------- */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 22px; background: var(--panel);
+  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20;
+}
+.brand { font-size: 17px; font-weight: 700; }
+.brand .ver { color: var(--muted); font-size: 12px; font-weight: 400; margin-left: 6px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+
+.chip {
+  padding: 4px 12px; border-radius: 999px; font-size: 12px;
+  background: rgba(229, 83, 75, .15); color: #ff9b95;
+  border: 1px solid rgba(229, 83, 75, .35); cursor: pointer;
+}
+.chip.ok { background: rgba(47, 191, 113, .15); color: #7ce0aa; border-color: rgba(47, 191, 113, .35); }
+
+/* ---------------- 步骤条 ---------------- */
+.steps { display: flex; gap: 8px; padding: 14px 22px 0; flex-wrap: wrap; }
+.step {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); color: var(--muted);
+  font-size: 13px; transition: .15s;
+}
+.step b {
+  display: inline-flex; width: 20px; height: 20px; border-radius: 50%;
+  align-items: center; justify-content: center; font-size: 11px;
+  background: var(--line); color: var(--muted);
+}
+.step:hover { border-color: var(--brand); color: var(--text); }
+.step.active { border-color: var(--brand); color: #fff; background: rgba(79, 140, 255, .13); }
+.step.active b { background: var(--brand); color: #fff; }
+.step.done b { background: var(--ok); color: #06210f; }
+.step.locked { opacity: .45; cursor: not-allowed; }
+
+/* ---------------- 横幅提示 ---------------- */
+.banner {
+  margin: 14px 22px 0; padding: 12px 16px; border-radius: var(--radius);
+  background: rgba(229, 161, 58, .12); border: 1px solid rgba(229, 161, 58, .35);
+  color: #ffd28a; font-size: 13px;
+}
+.banner ul { margin: 6px 0 0 18px; padding: 0; }
+
+/* ---------------- 面板 ---------------- */
+main { padding: 14px 22px 60px; max-width: 1180px; }
+.panel {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 22px; margin-bottom: 18px;
+}
+.panel h2 { margin: 0 0 16px; font-size: 18px; }
+.panel h2 small { color: var(--muted); font-size: 12px; font-weight: 400; margin-left: 8px; }
+.panel h3 { font-size: 15px; margin: 22px 0 10px; }
+.panel h3 small { color: var(--muted); font-weight: 400; font-size: 12px; }
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.req { color: var(--err); font-style: normal; }
+
+/* ---------------- 表单 ---------------- */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field > span { font-size: 13px; color: #c3c8d4; }
+.field small { color: var(--muted); font-size: 12px; }
+input, select, textarea {
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+  border-radius: 8px; padding: 9px 11px; font: inherit; outline: none; width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--brand); }
+textarea { resize: vertical; }
+/* 复选框不能吃全局的 width:100%，否则会被拉满整行 */
+input[type=checkbox], input[type=radio] { width: auto; flex: 0 0 auto; accent-color: var(--brand); }
+input[type=file] { padding: 7px; }
+.inline { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.inline input { width: 80px; }
+
+/* 岗位来源弹窗里的行内输入 */
+.source .s-enabled { width: auto; flex: 0 0 auto; }
+.source .s-label { flex: 1; min-width: 120px; }
+.source .s-url { margin-top: 6px; }
+
+/* ---------------- 按钮 ---------------- */
+.btn {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  padding: 9px 18px; border-radius: 8px; cursor: pointer; font: inherit;
+  transition: .15s; white-space: nowrap;
+}
+.btn:hover { border-color: var(--brand); }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
+.btn.primary:hover { background: var(--brand-2); }
+.btn.ghost { background: transparent; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.sm { padding: 5px 12px; font-size: 12px; }
+
+.row { display: flex; align-items: center; gap: 10px; margin: 10px 0; }
+.row.wrap { flex-wrap: wrap; }
+.actions { margin-top: 18px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+/* ---------------- 简历区 ---------------- */
+.resume-box {
+  border: 1px dashed var(--line); border-radius: var(--radius);
+  padding: 16px; margin-top: 8px; background: rgba(255, 255, 255, .015);
+}
+.resume-box h3 { margin: 0 0 10px; font-size: 15px; }
+.resume-box input[type=file] { padding: 7px; }
+.hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
+.hint.ok { color: #7ce0aa; }
+details summary { cursor: pointer; color: var(--brand); font-size: 13px; margin-top: 10px; }
+pre {
+  background: var(--panel-2); padding: 12px; border-radius: 8px; overflow: auto;
+  max-height: 300px; white-space: pre-wrap; font-size: 12px; color: #b9c0cf;
+}
+
+/* ---------------- 行情卡片 ---------------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 18px 0; }
+.card {
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.card .label { color: var(--muted); font-size: 12px; }
+.card .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+.card .value small { font-size: 12px; font-weight: 400; color: var(--muted); margin-left: 3px; }
+.card.hl { border-color: var(--brand); background: rgba(79, 140, 255, .1); }
+
+.advice {
+  padding: 14px 16px; border-radius: var(--radius); margin: 14px 0;
+  background: rgba(79, 140, 255, .1); border: 1px solid rgba(79, 140, 255, .3); font-size: 13px;
+}
+.warnbox {
+  padding: 12px 16px; border-radius: var(--radius); margin: 14px 0;
+  background: rgba(229, 161, 58, .1); border: 1px solid rgba(229, 161, 58, .3);
+  color: #ffd28a; font-size: 13px;
+}
+.warnbox ul { margin: 6px 0 0 18px; padding: 0; }
+
+/* ---------------- 岗位列表 ---------------- */
+.joblist { display: flex; flex-direction: column; gap: 10px; }
+.job {
+  background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px 16px;
+}
+.job .jt { font-weight: 600; font-size: 15px; }
+.job .jm { color: var(--muted); font-size: 12px; margin-top: 5px; display: flex; flex-wrap: wrap; gap: 12px; }
+.job .salary { color: #7ce0aa; font-weight: 600; }
+.job .tags { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  font-size: 11px; padding: 2px 9px; border-radius: 999px;
+  background: rgba(255, 255, 255, .06); color: #aeb5c4;
+}
+.tag.hit { background: rgba(79, 140, 255, .18); color: #9dc0ff; }
+.job .acts { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+.job .jd { margin-top: 10px; }
+.job .jd pre { max-height: 220px; }
+
+/* ---------------- 目标岗位 ---------------- */
+.targetjob {
+  padding: 14px 16px; border-radius: var(--radius); margin-bottom: 16px;
+  background: rgba(47, 191, 113, .08); border: 1px solid rgba(47, 191, 113, .3);
+}
+.targetjob.empty { background: rgba(229, 161, 58, .08); border-color: rgba(229, 161, 58, .3); }
+
+/* ---------------- 面试对话 ---------------- */
+.chat { display: flex; flex-direction: column; gap: 12px; margin: 18px 0; }
+.msg { padding: 13px 16px; border-radius: var(--radius); font-size: 14px; }
+.msg.interviewer { background: rgba(79, 140, 255, .1); border: 1px solid rgba(79, 140, 255, .28); }
+.msg.me { background: rgba(47, 191, 113, .08); border: 1px solid rgba(47, 191, 113, .25); }
+.msg .who { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.msg .body { white-space: pre-wrap; }
+.answer-box { border-top: 1px solid var(--line); padding-top: 16px; }
+.report, .result, .kb-report {
+  margin-top: 16px; padding: 16px; border-radius: var(--radius);
+  background: var(--panel-2); border: 1px solid var(--line); white-space: pre-wrap;
+}
+.kb-report ul { margin: 8px 0 0 18px; padding: 0; }
+
+/* ---------------- 进度条 ---------------- */
+.progress { height: 4px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 14px 0; }
+.progress .bar { height: 100%; width: 35%; background: var(--brand); animation: slide 1.2s ease-in-out infinite; }
+@keyframes slide { 0% { margin-left: -35%; } 100% { margin-left: 100%; } }
+
+/* ---------------- 弹窗 ---------------- */
+.modal {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, .65);
+  display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px;
+}
+.modal-box {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  padding: 24px; width: 560px; max-height: 88vh; overflow: auto;
+}
+.modal-box.wide { width: 780px; }
+.modal-box h2 { margin-top: 0; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+#verifyResult {
+  padding: 12px 14px; border-radius: 8px; margin: 10px 0; font-size: 13px;
+  background: rgba(255, 255, 255, .05); border: 1px solid var(--line);
+}
+#verifyResult.ok { background: rgba(47, 191, 113, .12); border-color: rgba(47, 191, 113, .4); }
+#verifyResult.err { background: rgba(229, 83, 75, .12); border-color: rgba(229, 83, 75, .4); }
+
+/* ---------------- 来源编辑 ---------------- */
+.sources { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+.source {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 12px 14px; background: var(--panel-2);
+}
+.source .head { display: flex; align-items: center; gap: 10px; }
+.source input[type=text] { margin-top: 6px; }
+.source .sub { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+/* ---------------- toast ---------------- */
+.toast {
+  position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+  padding: 12px 22px; border-radius: 999px; z-index: 99; font-size: 13px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, .5); max-width: 80vw;
+}
+.toast.ok { border-color: rgba(47, 191, 113, .5); }
+.toast.err { border-color: rgba(229, 83, 75, .55); }

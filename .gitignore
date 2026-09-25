@@ -1,8 +1,40 @@
+# ===== 密钥与用户配置 =====
 .env
+.streamlit/secrets.toml
+
+# ===== Python =====
 *.pyc
 __pycache__/
+.pytest_cache/
+.pytest_tmp/
+.pytest_data/
+pytest-cache-files-*/
+tests/_artifacts/
+.piptmp/
+
+# ===== 运行产物 =====
 *.txt
 !requirements.txt
 *.xlsx
 history.json
-.streamlit/secrets.toml
+data/app.db
+data/app.db-*
+data/chroma/
+data/settings.json
+data/sources.json
+data/uploads/
+data/logs/
+logs/
+*.log
+
+# ===== 打包产物 =====
+build/
+dist/
+*.spec
+
+# ===== 编辑器 =====
+.idea/
+.vscode/
+
+# ===== v2 归档（保留在仓库里，但不参与构建）=====
+legacy/__pycache__/

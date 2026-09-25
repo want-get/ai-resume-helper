@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 求职助手</title>
+<link rel="icon" href="/static/favicon.svg">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">🎯 AI 求职助手 <span class="ver" id="appVersion"></span></div>
+  <div class="topbar-right">
+    <span class="chip" id="llmChip" title="点击配置大模型">模型未配置</span>
+    <button class="btn ghost" id="btnSettings">⚙️ 模型设置</button>
+  </div>
+</header>
+
+<nav class="steps" id="steps">
+  <button class="step" data-step="profile"><b>1</b><span>求职档案</span></button>
+  <button class="step" data-step="market"><b>2</b><span>抓岗与薪资</span></button>
+  <button class="step" data-step="kb"><b>3</b><span>专属知识库</span></button>
+  <button class="step" data-step="interview"><b>4</b><span>模拟面试</span></button>
+  <button class="step" data-step="optimize"><b>5</b><span>简历优化</span></button>
+</nav>
+
+<div class="banner hidden" id="banner"></div>
+
+<main>
+
+<!-- ============ 1. 求职档案 ============ -->
+<section class="panel" id="sec-profile">
+  <h2>求职档案 <small>带 <i class="req">*</i> 的是必填，没填全无法进入下一步</small></h2>
+
+  <div class="grid2">
+    <label class="field">
+      <span>求职方向 <i class="req">*</i></span>
+      <input id="p_role" placeholder="例如：AI Agent 开发工程师、Python 后端开发">
+      <small>会用来匹配职位名称，越具体越好</small>
+    </label>
+    <label class="field">
+      <span>期望城市 <i class="req">*</i></span>
+      <input id="p_city" list="cityList" placeholder="例如：北京、杭州">
+      <datalist id="cityList"></datalist>
+      <small>用于过滤岗位与统计当地薪资</small>
+    </label>
+    <label class="field">
+      <span>期望月薪下限 (K) <i class="req">*</i></span>
+      <input id="p_salary_min" type="number" min="1" max="500" placeholder="例如：25">
+    </label>
+    <label class="field">
+      <span>期望月薪上限 (K)</span>
+      <input id="p_salary_max" type="number" min="1" max="500" placeholder="留空表示不限">
+    </label>
+    <label class="field">
+      <span>工作年限</span>
+      <input id="p_years" type="number" min="0" max="50" step="0.5" placeholder="例如：3">
+    </label>
+    <label class="field">
+      <span>学历</span>
+      <input id="p_education" placeholder="例如：本科 / 硕士">
+    </label>
+  </div>
+
+  <label class="field">
+    <span>技能关键词（逗号分隔，可选）</span>
+    <input id="p_skills" placeholder="例如：Python, FastAPI, RAG, Agent">
+    <small>会一起用于岗位匹配</small>
+  </label>
+
+  <label class="field">
+    <span>补充说明（可选）</span>
+    <textarea id="p_notes" rows="2" placeholder="例如：只看大厂、不接受外包、倾向远程"></textarea>
+  </label>
+
+  <div class="resume-box">
+    <h3>简历 <i class="req">*</i></h3>
+    <div class="row">
+      <input type="file" id="resumeFile" accept=".pdf,.txt,.md">
+      <button class="btn" id="btnUploadResume">上传简历</button>
+    </div>
+    <div class="hint" id="resumeStatus">还没有上传简历。支持 PDF / TXT / Markdown。</div>
+    <details id="resumePreviewBox" class="hidden">
+      <summary>查看解析结果（核对有没有乱码或缺页）</summary>
+      <pre id="resumePreview"></pre>
+    </details>
+  </div>
+
+  <div class="actions">
+    <button class="btn primary" id="btnSaveProfile">保存档案</button>
+    <span class="muted" id="profileMissing"></span>
+  </div>
+</section>
+
+<!-- ============ 2. 抓岗与薪资 ============ -->
+<section class="panel hidden" id="sec-market">
+  <h2>抓岗与薪资行情 <small>按你的方向与城市，从真实招聘网站抓取</small></h2>
+
+  <div class="row wrap">
+    <button class="btn primary" id="btnCrawl">🔍 开始抓取岗位</button>
+    <button class="btn ghost" id="btnSources">⚙️ 岗位来源设置</button>
+    <span class="muted" id="crawlStatus"></span>
+  </div>
+
+  <div id="crawlProgress" class="progress hidden"><div class="bar"></div></div>
+
+  <div class="cards" id="salaryCards"></div>
+  <div id="salaryAdvice" class="advice hidden"></div>
+  <div id="crawlWarnings" class="warnbox hidden"></div>
+
+  <h3>抓到的岗位 <small id="jobCount"></small></h3>
+  <div class="joblist" id="jobList"></div>
+</section>
+
+<!-- ============ 3. 专属知识库 ============ -->
+<section class="panel hidden" id="sec-kb">
+  <h2>你的专属知识库 <small>简历 + 目标岗位 + 同类岗位 + 相关面试题</small></h2>
+
+  <div class="targetjob" id="targetJobBox"></div>
+
+  <div class="row wrap">
+    <button class="btn primary" id="btnBuildKb">📚 生成专属知识库</button>
+    <button class="btn ghost" id="btnKbStats">查看状态</button>
+    <span class="muted" id="kbStatus"></span>
+  </div>
+
+  <div id="kbReport" class="kb-report hidden"></div>
+  <div class="muted small">
+    提示：换了目标岗位后必须重新生成，否则面试题还是围绕旧岗位出的。
+  </div>
+</section>
+
+<!-- ============ 4. 模拟面试 ============ -->
+<section class="panel hidden" id="sec-interview">
+  <h2>模拟面试 <small>题目基于你的专属知识库</small></h2>
+
+  <div class="row wrap">
+    <label class="inline">题目数量
+      <input id="iv_rounds" type="number" min="3" max="15" value="5">
+    </label>
+    <button class="btn primary" id="btnStartInterview">🎤 开始面试</button>
+    <button class="btn ghost" id="btnClearInterview">🗑️ 清空</button>
+    <span class="muted" id="ivStatus"></span>
+  </div>
+
+  <div class="chat" id="ivChat"></div>
+
+  <div class="answer-box hidden" id="ivAnswerBox">
+    <textarea id="iv_answer" rows="5" placeholder="在这里输入你的回答…（提交后输入框会自动清空）"></textarea>
+    <div class="row">
+      <button class="btn primary" id="btnSubmitAnswer">提交回答</button>
+      <button class="btn ghost" id="btnReport">📝 生成面试报告</button>
+      <span class="muted" id="ivProgress"></span>
+    </div>
+  </div>
+
+  <div id="ivReport" class="report hidden"></div>
+</section>
+
+<!-- ============ 5. 简历优化 ============ -->
+<section class="panel hidden" id="sec-optimize">
+  <h2>简历优化 <small>对照你的目标岗位 JD 改</small></h2>
+  <div class="row wrap">
+    <button class="btn primary" id="btnOptimize">✨ 开始优化</button>
+    <button class="btn ghost" id="btnCopyOptimize">📋 复制结果</button>
+    <span class="muted" id="optStatus"></span>
+  </div>
+  <div class="result hidden" id="optResult"></div>
+</section>
+
+</main>
+
+<!-- ============ 模型设置弹窗 ============ -->
+<div class="modal hidden" id="settingsModal">
+  <div class="modal-box">
+    <h2>模型设置</h2>
+    <p class="muted small">填完点保存<b>立即生效</b>，不需要改配置文件、也不需要重启程序。Key 只保存在本机。</p>
+
+    <label class="field">
+      <span>大模型厂商</span>
+      <select id="s_provider"></select>
+      <small id="providerNote"></small>
+    </label>
+
+    <label class="field">
+      <span>接口地址 (Base URL)</span>
+      <input id="s_base_url" placeholder="https://api.deepseek.com">
+    </label>
+
+    <label class="field">
+      <span>模型名</span>
+      <input id="s_model" list="modelList" placeholder="deepseek-chat">
+      <datalist id="modelList"></datalist>
+    </label>
+
+    <label class="field">
+      <span>API Key</span>
+      <input id="s_api_key" type="password" placeholder="sk-...">
+      <small id="keyHint"></small>
+    </label>
+
+    <div class="grid2">
+      <label class="field">
+        <span>temperature（越低越严谨）</span>
+        <input id="s_temperature" type="number" min="0" max="2" step="0.1" value="0.2">
+      </label>
+      <label class="field">
+        <span>最大输出 token</span>
+        <input id="s_max_tokens" type="number" min="64" max="8192" step="64" value="2048">
+      </label>
+    </div>
+
+    <div id="verifyResult" class="hidden"></div>
+
+    <div class="modal-actions">
+      <button class="btn primary" id="btnSaveLlm">保存并验证</button>
+      <button class="btn ghost" id="btnVerifyLlm">仅验证</button>
+      <button class="btn ghost" id="btnClearLlm">清除 Key</button>
+      <button class="btn ghost" id="btnCloseSettings">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 岗位来源弹窗 ============ -->
+<div class="modal hidden" id="sourcesModal">
+  <div class="modal-box wide">
+    <h2>岗位来源</h2>
+    <p class="muted small">
+      内置来源是真实招聘网站的公开接口。你也可以加一条「自定义官网」：
+      填职位列表页地址即可，程序会用系统自带的 Edge 自动渲染并识别岗位。
+    </p>
+    <div id="sourcesList" class="sources"></div>
+    <div class="modal-actions">
+      <button class="btn primary" id="btnSaveSources">保存来源</button>
+      <button class="btn ghost" id="btnAddSource">+ 新增来源</button>
+      <button class="btn ghost" id="btnCloseSources">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

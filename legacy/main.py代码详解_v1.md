@@ -1,4 +1,17 @@
-# main.py 代码详解
+# main.py 代码详解（v1.0 存档）
+
+> ⚠️ **本文档描述的是 v1.0 的命令行版**，其中 `main.py` 自己直接调用大模型、自己读取 PDF。
+>
+> **v2.0 起架构已改为前后端分离**：`main.py` 变成了一个轻量客户端，
+> 通过 HTTP 调用 FastAPI 后端（RAG 检索、Function Calling、多轮对话、长上下文压缩都在后端）。
+> 因此文中的 `get_resume_from_pdf()` / `optimize_resume()` / `mock_interview()` 等函数
+> **在当前代码里已经不存在**。
+>
+> * 想了解 v2.0 的架构与实现，请看 [`README.md`](README.md) 与 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)。
+> * 本文档保留下来，是因为其中关于「多轮对话如何维护 messages 历史」、
+>   「单轮 vs 多轮的区别」这些**思路讲解**依然成立，对理解 v2.0 的长上下文机制有帮助。
+
+---
 
 > 本文档逐行解析 `main.py` 的每一段代码，帮助理解整个命令行版 AI 简历优化助手的实现逻辑。
 

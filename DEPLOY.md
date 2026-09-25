@@ -1,68 +1,100 @@
-# 上线部署指南（Streamlit Community Cloud）
+# 部署与分发指南（v3 单机版）
 
-本文档说明如何把网页版（`app.py`）部署到 Streamlit Community Cloud，让朋友通过公网链接访问。
+v3 是**单机应用**：一个 exe、一个进程、SQLite 本地文件。
+没有服务器、没有数据库服务、没有登录，也没有前后端分离。
 
-## 一、部署前准备
+---
 
-### 1. 安装依赖
+## 一、给普通用户：直接发 exe
 
-`requirements.txt` 已包含 `openai`、`pdfplumber`、`streamlit`：
+```bash
+python build_exe.py --clean
+```
+
+产物：`dist/AI求职助手.exe`（实测 **124.9 MB**）。
+
+把 **exe 单独发给对方**即可，对方双击就能用。首次运行会在 exe 同级目录自动创建
+`data/`（数据库、向量库、日志、用户配置）。
+
+> 如果装在 `C:\Program Files` 这类不可写目录，程序会自动把数据改放到
+> `%LOCALAPPDATA%\AIResumeHelper\data\`，不会因为权限问题启动失败。
+
+**为什么只有 125MB**（同类应用常见的 300MB+）：
+- 不打包 Chromium —— 用 `channel="msedge"` 驱动系统自带 Edge（Win10/11 都预装），省 150MB+
+- 不打包 Streamlit —— 前端是原生 HTML/CSS/JS，由 FastAPI 直接托管
+- 向量化离线（字符 n-gram 哈希 TF-IDF）—— 不需要联网下载 embedding 模型，
+  这一点对打包尤其关键，否则首次运行下载失败就直接跑不起来
+
+### 分发前检查
+
+- [ ] 在**干净的机器**（没装过 Python）上双击试过
+- [ ] 确认对方机器有 Edge 或 Chrome（自定义官网渲染爬虫需要；只用内置来源则无所谓）
+- [ ] 告诉对方「配置在界面右上角填，不用改任何文件」
+- [ ] 如果要连内网，`python main.py --host 0.0.0.0` 并自行加反向代理与鉴权
+
+---
+
+## 二、给开发者：源码运行
 
 ```bash
 pip install -r requirements.txt
+python main.py                     # 自动找空闲端口 + 打开浏览器
+python main.py --port 8900 --no-browser
+python server.py --reload          # 只跑后端（改代码自动重启）
 ```
 
-### 2. 初始化 Git 仓库并推送到 GitHub
+需要改动的地方：
 
-Streamlit Community Cloud 通过 GitHub 仓库部署，需要先把项目推上去：
+| 想改什么 | 改哪里 |
+|---------|--------|
+| 岗位来源 | 界面「岗位来源」，或数据目录的 `sources.json` |
+| 抓取行为（并发/超页/详情条数） | `.env` 里的 `CRAWLER_*` |
+| 大模型 | 界面「模型设置」（存 `data/settings.json`） |
+| 切分与检索阈值 | `.env` 里的 `RAG_*` |
+| 反问措辞/防幻觉规则 | `prompts/system.py` |
+
+---
+
+## 三、容器部署（可选，非单机场景）
 
 ```bash
-git init
-git add .
-git commit -m "init"
-# 在 GitHub 网页上新建一个仓库，然后：
-git remote add origin https://github.com/<你的用户名>/<仓库名>.git
-git push -u origin main
+cp .env.example .env
+docker compose up -d --build
+# 打开 http://localhost:8000
 ```
 
-> 注意：`.gitignore` 已配置好，`requirements.txt` 会被正常提交，而 `.env`、`*.txt` 结果文件、`.streamlit/secrets.toml` 不会被提交。
+数据落在 `kb_data` 卷里。注意：**容器基础镜像不含 Edge/Chrome**，
+所以容器里只能使用公开 JSON 接口类来源；要用「自定义官网渲染爬虫」，
+请换成带浏览器的基础镜像（例如基于 `mcr.microsoft.com/playwright/python`）。
 
-### 3. 配置 API Key（Secrets）
+---
 
-API Key **不要写进代码，也不要提交到 Git**。
+## 四、换成 MySQL（可选）
 
-- **本地开发**：复制 `.streamlit/secrets.toml.example` 为 `.streamlit/secrets.toml`，填入你的密钥。
-- **云端部署**：在 Streamlit Cloud 的 Secrets 面板填入：
-
-```toml
-DEEPSEEK_API_KEY = "sk-你的密钥"
-```
-
-## 二、部署到 Streamlit Community Cloud
-
-1. 打开 <https://share.streamlit.io> 并用 GitHub 账号登录。
-2. 点击「New app」。
-3. 选择你的仓库、分支（`main`）和主文件路径 `app.py`。
-4. 在「Advanced settings → Secrets」中填入上面的 `DEEPSEEK_API_KEY`。
-5. 点击「Deploy」，等待几分钟即可得到公网链接。
-
-之后每次 `git push` 都会自动重新部署。
-
-## 三、注意事项
-
-- **链接是公开的**：免费版没有登录/密码，拿到链接的人都能访问。只把链接发给你的朋友，不要发到公开场合。
-- **会休眠**：App 一段时间无人访问会进入睡眠，下一个人首次打开需要等几秒到几十秒的冷启动，属正常现象。
-- **会消耗 API 额度**：朋友每次使用都会调用 DeepSeek API，费用从你的账户余额扣除，请留意余额。
-- **历史记录仅当前会话有效**：网页版历史记录保存在会话内，刷新页面或换浏览器会清空（这是有意为之，避免云端多用户共写文件导致冲突）。
-
-## 四、本地运行网页版（调试）
+单机版默认 SQLite 是为了免除依赖。确实需要 MySQL 时：
 
 ```bash
-streamlit run app.py
+pip install aiomysql
 ```
 
-命令行版仍然可用：
-
-```bash
-python main.py
+```ini
+DATABASE_URL=mysql+aiomysql://root:密码@127.0.0.1:3306/ai_resume_helper?charset=utf8mb4
 ```
+
+库不存在会自动创建；连不上会自动回退 SQLite，`/health` 与界面会如实标注。
+
+---
+
+## 五、出问题怎么排查
+
+| 现象 | 看哪里 |
+|------|--------|
+| 双击 exe 没反应 | 用命令行运行 `AI求职助手.exe`，控制台会打印原因 |
+| 服务起不来 | 数据目录下 `logs/app.log` |
+| 抓不到岗位 | 界面「岗位来源」里逐个试抓，会显示每个来源的失败原因 |
+| 大模型报错 | 界面「模型设置」→「仅验证」，会显示具体错误 |
+| 界面打不开 | 控制台会打印实际端口（默认 8000 被占用时会顺延） |
+
+调试用接口：
+`GET /health`（数据库/知识库/模型状态）、`GET /api/v1/system`（数据目录与运行形态）、
+`GET /docs`（完整交互式 API 文档）。

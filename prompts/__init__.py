@@ -2,6 +2,7 @@
 #
 # 目录结构：
 #   common.py    公用规则（面试规则、评分权重、简历优化通用要求）
+#   system.py    系统级模板（防幻觉、RAG 引用、长上下文摘要、工具调用）
 #   tech.py      技术岗模板
 #   non_tech.py  非技术岗模板
 #
@@ -10,7 +11,7 @@
 #   prompts = get_prompts(TECH)
 #   prompt = prompts.RESUME_OPTIMIZE_PROMPT.format(resume_text="...")
 
-from . import common, tech, non_tech
+from . import common, non_tech, system, tech
 
 # 岗位类型常量
 TECH = "tech"
