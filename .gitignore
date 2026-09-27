@@ -32,6 +32,10 @@ build/
 dist/
 *.spec
 
+# ===== 自检脚本的中间产物 =====
+# check_retrieval_quality.py --list 导出的语料，随时可重新生成，不必入库
+scripts/_corpus_dump.txt
+
 # ===== 编辑器 =====
 .idea/
 .vscode/

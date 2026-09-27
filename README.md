@@ -7,24 +7,54 @@
 
 ---
 
-## 一、怎么用（三步）
+## 一、怎么用
 
-### 方式 A：用打包好的 exe（推荐给普通用户）
+### 方式 A：下载 exe，双击即用（推荐，**不需要装任何东西**）
 
-1. 找到 `dist\AI求职助手.exe`，**双击**
-2. 等十几秒（首次要建库），浏览器会自动打开界面
-3. 按界面上的步骤条走：填档案 → 传简历 → 抓岗位 → 选目标岗位 → 建知识库 → 开始面试
+1. 打开 **[Releases 页面](https://github.com/want-get/ai-resume-helper/releases/latest)**
+2. 下载附件 **`AI求职助手.exe`**（约 125 MB）
+3. **双击运行**，等十几秒（首次运行要建库），浏览器会自动打开界面
+4. 按界面上的步骤条走：填档案 → 传简历 → 抓岗位 → 选目标岗位 → 建知识库 → 开始面试
 
+> **不需要安装 Python、不需要命令行、不需要装数据库、不需要改配置文件。**
+>
 > 数据写在 exe 同级的 `data\` 目录里（数据库、向量库、日志、你的配置）。
 > 想换台电脑用，把整个文件夹拷走即可；想清空重来，删掉 `data\` 就行。
+>
+> **首次使用请先在界面右上角「⚙️ 模型设置」里填入大模型 API Key**，
+> 否则出题和简历优化会走离线桩响应（不会报错，但内容是占位的）。
 
-### 方式 B：源码运行（开发/调试）
+### 方式 B：从源码运行（开发者）
+
+需要先安装 **Python 3.11+**。
 
 ```bash
+git clone https://github.com/want-get/ai-resume-helper.git
+cd ai-resume-helper
+
+# 建虚拟环境并装依赖
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+# source .venv/bin/activate     # macOS / Linux
+
 pip install -r requirements.txt
-python main.py                    # 自动找空闲端口 + 打开浏览器
-python main.py --port 8900 --no-browser   # 指定端口、不开浏览器
-python server.py --reload         # 只跑后端，改代码自动重启
+
+python main.py                          # 自动找空闲端口 + 打开浏览器
+python main.py --port 8900 --no-browser # 指定端口、不开浏览器
+python server.py --reload               # 只跑后端，改代码自动重启
+```
+
+首次启动会自动用 `data/seed/` 里的种子数据建好公共知识库（面试题库 + 岗位 JD），
+然后在界面右上角「模型设置」里填 API Key 即可。
+
+> Windows 用户也可以双击 **`启动.bat`**，它会自动寻找虚拟环境。
+> 但请先确认已执行过上面的 `pip install -r requirements.txt`。
+
+### 方式 C：自己打包成 exe
+
+```bash
+pip install pyinstaller
+python build_exe.py --clean     # 产物：dist/AI求职助手.exe（约 2 分钟）
 ```
 
 ---
