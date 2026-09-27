@@ -21,6 +21,40 @@ v3 是**单机应用**：一个 exe、一个进程、SQLite 本地文件。
 > git 历史里，导致每次 clone 都要多下一百多兆。**Releases 附件才是放二进制产物的地方**
 > （上限 2 GB，且不占 git 历史）。
 
+> ⚠️ **附件名请用纯 ASCII**（本仓库用的是 `AI-Resume-Helper.exe`，不是本地的
+> `AI求职助手.exe`）。实测 GitHub 的附件上传接口对中文文件名处理有问题：
+> 用 `gh release upload` 或 `??name=中文` 上传都会**被静默截断成 `AI.exe`**，
+> 而上传本身还返回成功，很容易误以为没问题。上传完**务必回仓库页面确认附件名**。
+
+#### 推荐的上传命令
+
+```bash
+# gh：本地上传（注意先把文件复制成 ASCII 名，避免 gh 处理中文路径出错）
+copy "dist\AI求职助手.exe" "%TEMP%\up_ai.exe"
+gh release upload v3.0.0 "%TEMP%\up_ai.exe" --clobber
+# gh 会用文件名作为附件名，所以这样得到的是 up_ai.exe
+# 想要指定名字，用下面的 API 方式：
+```
+
+```bash
+# API：可以显式指定附件名（推荐，名字可控）
+curl -X POST \
+  -H "Authorization: Bearer <你的token>" \
+  -H "Content-Type: application/octet-stream" \
+  --data-binary "@%TEMP%\up_ai.exe" \
+  "https://uploads.github.com/repos/<owner>/<repo>/releases/<release_id>/assets?name=AI-Resume-Helper.exe"
+```
+
+> `release_id` 从 `GET /repos/<owner>/<repo>/releases/tags/<tag>` 的 `id` 字段取，
+> 或直接用响应里的 `upload_url`（去掉 `{?name,label}` 后缀）。
+
+**上传后必须验证**（只看命令返回成功是不够的）：
+
+```bash
+gh release view v3.0.0 --repo <owner>/<repo> --json assets
+# 确认 name 是你要的、size 与本机文件一致、state 为 uploaded
+```
+
 ### 2. exe 从哪来（这一步是开发者做的，不是普通用户做的）
 
 ```bash

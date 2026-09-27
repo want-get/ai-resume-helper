@@ -12,7 +12,7 @@
 ### 方式 A：下载 exe，双击即用（推荐，**不需要装任何东西**）
 
 1. 打开 **[Releases 页面](https://github.com/want-get/ai-resume-helper/releases/latest)**
-2. 下载附件 **`AI求职助手.exe`**（约 125 MB）
+2. 下载附件 **`AI-Resume-Helper.exe`**（约 125 MB）
 3. **双击运行**，等十几秒（首次运行要建库），浏览器会自动打开界面
 4. 按界面上的步骤条走：填档案 → 传简历 → 抓岗位 → 选目标岗位 → 建知识库 → 开始面试
 
@@ -56,6 +56,11 @@ python server.py --reload               # 只跑后端，改代码自动重启
 pip install pyinstaller
 python build_exe.py --clean     # 产物：dist/AI求职助手.exe（约 2 分钟）
 ```
+
+> **注意文件名**：本地打包产物叫 `AI求职助手.exe`，但**上传到 GitHub Release 时
+> 请改用一个纯 ASCII 的名字**（本仓库用的是 `AI-Resume-Helper.exe`）。
+> 原因是 GitHub 的附件接口对中文文件名支持不佳——实测会被截断成 `AI.exe`。
+> 上传后记得让 README 里的文件名与实际附件保持一致。
 
 ---
 
